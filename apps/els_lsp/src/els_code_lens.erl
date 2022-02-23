@@ -61,6 +61,7 @@ available_lenses() ->
   , <<"show-behaviour-usages">>
   , <<"suggest-spec">>
   , <<"function-references">>
+  , <<"refactorerl">>
   ].
 
 -spec default_lenses() -> [lens_id()].

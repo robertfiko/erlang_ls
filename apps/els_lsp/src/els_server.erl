@@ -83,6 +83,7 @@ send_notification(Method, Params) ->
 
 -spec send_request(binary(), map()) -> ok.
 send_request(Method, Params) ->
+  els_refactorerl_utils:notification("req -- " ++ binary_to_list(Method)),
   gen_server:cast(?SERVER, {request, Method, Params}).
 
 -spec send_response(pid(), any()) -> ok.
@@ -213,6 +214,8 @@ do_send_request(Method, Params, #state{request_id = RequestId0} = State0) ->
             ),
   send(Request, State0),
   State0#state{request_id = RequestId}.
+ 
+
 
 -spec do_send_response(pid(), any(), state()) -> state().
 do_send_response(Job, Result, State0) ->

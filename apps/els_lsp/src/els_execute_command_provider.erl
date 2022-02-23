@@ -30,6 +30,7 @@ options() ->
                  , els_command:with_prefix(<<"show-behaviour-usages">>)
                  , els_command:with_prefix(<<"suggest-spec">>)
                  , els_command:with_prefix(<<"function-references">>)
+                 , els_command:with_prefix(<<"refactorerl">>)
                  ] }.
 
 -spec handle_request(any(), state()) -> {any(), state()}.
@@ -110,6 +111,21 @@ execute_command(<<"suggest-spec">>, [#{ <<"uri">> := Uri
      },
   els_server:send_request(Method, Params),
   [];
+
+execute_command(<<"refactorerl">>, _Params) ->
+  %els_refactorerl_utils:notification(io_lib:format("~p", [Uri])),
+  Uri = <<"file:///Users/fikorobert/Projects/ELS_Referl/els_dev/hehe.txt">>,
+  Method = <<"workspace/applyEdit">>,
+  %{ok, #{text := Text}} = els_utils:lookup_document(Uri),
+  NewText = <<"Hey">>,
+  Params =
+    #{ edit =>
+         els_text_edit:edit_replace_text(Uri, NewText, 1, 2)
+     },
+  els_server:send_request(Method, Params),
+  [];
+
+
 execute_command(Command, Arguments) ->
   ?LOG_INFO("Unsupported command: [Command=~p] [Arguments=~p]"
            , [Command, Arguments]),

@@ -1,4 +1,4 @@
--module(els_code_action_provider).
+-module(els_refactorerl_provider).
 
 -behaviour(els_provider).
 
@@ -15,7 +15,7 @@
 %%==============================================================================
 
 -spec is_enabled() -> boolean().
-is_enabled() -> true.
+is_enabled() -> false.
 
 -spec handle_request(any(), state()) -> {any(), state()}.
 handle_request({document_codeaction, Params}, State) ->
@@ -52,7 +52,7 @@ replace_lines_action(Uri, Title, Kind, Lines, Range) ->
    , kind => Kind
    , command =>
        els_command:make_command( Title
-                               , <<"replace-lines">>
+                               , <<"replace-lines-r">>
                                , [#{ uri   => Uri
                                    , lines => Lines
                                    , from  => StartLine
@@ -62,14 +62,14 @@ replace_lines_action(Uri, Title, Kind, Lines, Range) ->
 -spec make_code_action(uri(), els_diagnostics:diagnostic()) -> [map()].
 make_code_action(Uri, #{ <<"message">> := Message
                        , <<"range">>   := Range } = _Diagnostic) ->
-  unused_variable_action(Uri, Range, Message) ++ referl(Uri, Range, Message).
+  unused_variable_action(Uri, Range, Message).
 
 %%------------------------------------------------------------------------------
 
 -spec unused_variable_action(uri(), range(), binary()) -> [map()].
 unused_variable_action(Uri, Range, Message) ->
   %% Processing messages like "variable 'Foo' is unused"
-  case re:run(Message, "variable '(.*)' is unused"
+  case re:run(Message, "variable '(.*)' is unused Ref"
              , [{capture, all_but_first, binary}]) of
       {match, [UnusedVariable]} ->
           make_unused_variable_action(Uri, Range, UnusedVariable);
@@ -99,47 +99,9 @@ make_unused_variable_action(Uri, Range, UnusedVariable) ->
   end,
   UpdatedLine = lists:flatten(lists:map(Replace, Tokens)) ++ "\n",
     [ replace_lines_action( Uri
-                      , <<"Add '_' to '", UnusedVariable/binary, "'">>
+                      , <<"Ref: Add '_' to '", UnusedVariable/binary, "'">>
                       , ?CODE_ACTION_KIND_QUICKFIX
                       , els_utils:to_binary(UpdatedLine)
                       , Range)].
 
 %%------------------------------------------------------------------------------
-
--spec referl(uri(), range(), binary()) -> [map()].
-referl(Uri, Range, Message) ->
-  %% Processing messages like "variable 'Foo' is unused"
-  case re:run(Message, "variable '(.*)' is unused"
-             , [{capture, all_but_first, binary}]) of
-      {match, [UnusedVariable]} ->
-          make_referl(Uri, Range, UnusedVariable);
-      _ -> []
-  end.
-
--spec make_referl(uri(), range(), binary()) -> [map()].
-make_referl(Uri, Range, UnusedVariable) ->
-  #{ <<"start">> := #{ <<"character">> := _StartCol
-                     , <<"line">>      := StartLine }
-   , <<"end">>   := _End
-   } = Range,
-  %% processing messages like "variable 'Foo' is unused"
-  {ok, #{text := Bin}} = els_utils:lookup_document(Uri),
-  Line = els_utils:to_list(els_text:line(Bin, StartLine)),
-
-  {ok, Tokens, _} = erl_scan:string(Line, 1, [return, text]),
-  UnusedString = els_utils:to_list(UnusedVariable),
-  Replace =
-        fun(Tok) ->
-            case Tok of
-                {var, [{text, UnusedString}, _], _} -> "%% Variable Origin of " ++ UnusedString ++ ": \n %% 56";
-                {var, [{text, _VarName}, _], _} -> "";
-                {_,   [{text, _Text   }, _], _} -> "";
-                {_,   [{text, _Text   }, _]}    -> ""
-            end
-        end,
-  UpdatedLine = lists:flatten(lists:map(Replace, Tokens)) ++ "\n",
-    [ replace_lines_action( Uri
-                      , <<"Origin of '", UnusedVariable/binary, "'">>
-                      , ?CODE_ACTION_KIND_QUICKFIX
-                      , els_utils:to_binary(UpdatedLine)
-                      , Range)].
