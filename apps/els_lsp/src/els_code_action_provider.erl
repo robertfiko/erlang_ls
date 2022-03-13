@@ -62,7 +62,7 @@ replace_lines_action(Uri, Title, Kind, Lines, Range) ->
 -spec make_code_action(uri(), els_diagnostics:diagnostic()) -> [map()].
 make_code_action(Uri, #{ <<"message">> := Message
                        , <<"range">>   := Range } = _Diagnostic) ->
-  unused_variable_action(Uri, Range, Message) ++ unused_variable_actionR(Uri, Range, Message).
+  unused_variable_action(Uri, Range, Message) ++ variable_origin_action(Uri, Range, Message).
 
 %%------------------------------------------------------------------------------
 
@@ -99,50 +99,53 @@ make_unused_variable_action(Uri, Range, UnusedVariable) ->
   end,
   UpdatedLine = lists:flatten(lists:map(Replace, Tokens)) ++ "\n",
     [ replace_lines_action( Uri
-                      , <<"Add  a '_' to '", UnusedVariable/binary, "'">>
+                      , <<"Add '_' to '", UnusedVariable/binary, "'">>
                       , ?CODE_ACTION_KIND_QUICKFIX
                       , els_utils:to_binary(UpdatedLine)
                       , Range)].
 
-%%------------------------------------------------------------------------------
-%% REFERL
+%%==============================================================================
+%% RefactorErl
+%%==============================================================================
 
--spec unused_variable_actionR(uri(), range(), binary()) -> [map()].
-unused_variable_actionR(Uri, Range, Message) ->
-  %% Processing messages like "variable 'Foo' is unused"
-  case re:run(Message, "variable '(.*)' is unused"
-             , [{capture, all_but_first, binary}]) of
-      {match, [UnusedVariable]} ->
-          make_unused_variable_actionR(Uri, Range, UnusedVariable);
-      _ -> []
-  end.
 
--spec make_unused_variable_actionR(uri(), range(), binary()) -> [map()].
-make_unused_variable_actionR(Uri, Range, UnusedVariable) ->
-  #{ <<"start">> := #{ <<"character">> := _StartCol
-                     , <<"line">>      := StartLine }
-   , <<"end">>   := _End
-   } = Range,
+-spec variable_origin_action(uri(), range(), binary()) -> [map()].
+variable_origin_action(Uri, _Range, _Message) ->
+  {ok, DocumentList} = els_dt_document:lookup(Uri),
+  [ Document | _Rest ] = DocumentList,
+  Pois = els_dt_document:pois(Document, [variable]),
+  %els_refactorerl_utils:notification(io_lib:format("~p", [Pois])),
+  Alma = [ make_variable_origin_action(Uri, R, ID) ||  #{id := ID, range := R} <- Pois ],
+  els_refactorerl_utils:notification(io_lib:format("~p", [Alma])),
+  Alma.
+
+
+-spec make_variable_origin_action(uri(), range(), binary()) -> [map()].
+make_variable_origin_action(Uri, Range, Variable) ->
+  %#{ <<"start">> := #{ <<"character">> := _StartCol
+  %                   , <<"line">>      := StartLine }
+  % , <<"end">>   := _End
+  % } = Range,
   %% processing messages like "variable 'Foo' is unused"
-  {ok, #{text := Bin}} = els_utils:lookup_document(Uri),
-  Line = els_utils:to_list(els_text:line(Bin, StartLine)),
+  %{ok, #{text := Bin}} = els_utils:lookup_document(Uri),
+  %Line = els_utils:to_list(els_text:line(Bin, StartLine)),
 
-  {ok, Tokens, _} = erl_scan:string(Line, 1, [return, text]),
-  UnusedString = els_utils:to_list(UnusedVariable),
-  Replace =
-        fun(Tok) ->
-            case Tok of
-                {var, [{text, UnusedString}, _], _} -> "_" ++ UnusedString;
-                {var, [{text, VarName}, _], _} -> VarName;
-                {_,   [{text, Text   }, _], _} -> Text;
-                {_,   [{text, Text   }, _]}    -> Text
-            end
-  end,
-  UpdatedLine = lists:flatten(lists:map(Replace, Tokens)) ++ "\n",
+  %{ok, Tokens, _} = erl_scan:string(Line, 1, [return, text]),
+  %UnusedString = els_utils:to_list(UnusedVariable),
+  %Replace =
+  %      fun(Tok) ->
+  %          case Tok of
+  %              {var, [{text, UnusedString}, _], _} -> "_" ++ UnusedString;
+  %              {var, [{text, VarName}, _], _} -> VarName;
+  %              {_,   [{text, Text   }, _], _} -> Text;
+  %              {_,   [{text, Text   }, _]}    -> Text
+  %          end
+  %end,
+  %UpdatedLine = lists:flatten("") ++ "\n",
     [ replace_lines_action( Uri
-                      , <<"Add ccc  a '_' to '", UnusedVariable/binary, "'">>
+                      , <<"Variable Origin of '", Variable/binary, "'">>
                       , ?CODE_ACTION_KIND_QUICKFIX
-                      , els_utils:to_binary(UpdatedLine)
+                      , els_utils:to_binary("")
                       , Range)].
 
 %%------------------------------------------------------------------------------
