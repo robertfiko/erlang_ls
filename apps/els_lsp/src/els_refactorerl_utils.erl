@@ -12,6 +12,7 @@
         , run_diagnostics/2
         , source_name/0
         , add/1
+        , variable_orgin/2
         ]).
 
 %%==============================================================================
@@ -160,3 +161,16 @@ connect_node({Status, Node}) ->
 -spec source_name() -> binary().
 source_name() ->
   <<"RefactorErl">>.
+
+
+-spec variable_orgin(uri(), {number(), number()}) -> error | ok.
+variable_orgin(PathBin, Position) ->
+  %els_refactorerl_utils:notification(io_lib:format("~p ~p", [Uri, Position])),
+  case els_refactorerl_utils:referl_node() of
+    {ok, Node} ->
+      Path = binary_to_list(PathBin),
+      A = rpc:call(Node, referl_els, variable_origin, [Path, Position]), %% returns error | ok
+      notification(io_lib:format("~p", [A]));
+    _ ->
+      error
+  end.
