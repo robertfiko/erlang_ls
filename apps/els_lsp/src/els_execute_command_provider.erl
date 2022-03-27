@@ -30,6 +30,7 @@ options() ->
                  , els_command:with_prefix(<<"show-behaviour-usages">>)
                  , els_command:with_prefix(<<"suggest-spec">>)
                  , els_command:with_prefix(<<"function-references">>)
+                 , els_command:with_prefix(<<"refactorerl-variable-origin">>)
                  ] }.
 
 -spec handle_request(any(), state()) -> {any(), state()}.
@@ -110,6 +111,21 @@ execute_command(<<"suggest-spec">>, [#{ <<"uri">> := Uri
      },
   els_server:send_request(Method, Params),
   [];
+execute_command(<<"refactorerl-variable-origin">>, Arguments) ->
+  %els_refactorerl_utils:notification(io_lib:format("~p", [Arguments])),
+  case length(Arguments) of
+    1 -> 
+      Argument = hd(Arguments),
+      #{ <<"range">> := RangeRaw, <<"uri">> := Uri} = Argument,
+      Range = els_range:to_poi_range(RangeRaw),
+      #{from := From} = Range,
+      Path = els_uri:path(Uri),
+      %els_refactorerl_utils:notification(io_lib:format("~p ~p", [Path, From])),
+      els_refactorerl_utils:variable_orgin(Path, From),
+      [];
+    0 -> []
+  end;
+
 execute_command(Command, Arguments) ->
   ?LOG_INFO("Unsupported command: [Command=~p] [Arguments=~p]"
            , [Command, Arguments]),
