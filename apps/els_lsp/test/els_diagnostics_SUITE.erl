@@ -752,13 +752,17 @@ edoc_skip_app_src(_Config) ->
 
 -spec edoc_custom_tags(config()) -> ok.
 edoc_custom_tags(_Config) ->
-  %% Custom tags are defined in priv/code_navigation/erlang_ls.config
-  Path = src_path("edoc_diagnostics_custom_tags.erl"),
+   %% Custom tags are defined in priv/code_navigation/erlang_ls.config
+   Path = src_path("edoc_diagnostics_custom_tags.erl"),
   Source = <<"Edoc">>,
   Errors = [],
   Warnings = [ #{ message =>
                     <<"tag @docc not recognized.">>
                 , range => {{9, 0}, {10, 0}}
+                }
+             ],
+  Hints = [],
+  els_test:run_diagnostics_test(Path, Source, Errors, Warnings, Hints).
 
 
 
