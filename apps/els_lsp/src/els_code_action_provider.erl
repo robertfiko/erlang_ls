@@ -137,7 +137,7 @@ make_variable_origin_action(Uri, Range, Pois) ->
     0 -> [];
     _ ->
       #{id := VarName} = hd(MatchingRanges),
-      VarNameBin = atom_to_binary(VarName),
+      VarNameBin = atom_to_binary(VarName, utf8),
 
       Title =  <<"Variable Origin of ", VarNameBin/binary>>,
       CodeAction = #{ title =>  Title
