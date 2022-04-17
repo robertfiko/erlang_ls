@@ -129,8 +129,8 @@ execute_command(<<"refactorerl-dependency-graph">>, Arguments) ->
   case length(Arguments) of
     1 ->
       Argument = hd(Arguments),
-      #{ <<"type">> := _Type, <<"name">> := FunName} = Argument,
-      els_refactorerl_utils:dependency_graph(FunName),
+      #{ <<"type">> := Type, <<"name">> := Name} = Argument,
+      els_refactorerl_utils:dependency_graph(Name, Type),
       [];
     0 -> []
   end;

@@ -121,7 +121,6 @@ variable_origin_action(Uri, Range) ->
   {ok, DocumentList} = els_dt_document:lookup(Uri),
   [ Document | _Rest ] = DocumentList,
   Pois = els_dt_document:pois(Document, [variable]),
-  %els_refactorerl_utils:notification(io_lib:format("~p", Pois)),
   Alma = lists:flatten([ make_variable_origin_action(Uri, Range, Pois) ]),
   Alma.
 
@@ -138,7 +137,7 @@ make_variable_origin_action(Uri, Range, Pois) ->
     0 -> [];
     _ ->
       #{id := VarName} = hd(MatchingRanges),
-      VarNameBin = erlang:atom_to_binary(VarName),
+      VarNameBin = atom_to_binary(VarName),
 
       Title =  <<"Variable Origin of ", VarNameBin/binary>>,
       CodeAction = #{ title =>  Title
@@ -156,13 +155,13 @@ make_variable_origin_action(Uri, Range, Pois) ->
 depgraph_action(Uri, Range) ->
   {ok, DocumentList} = els_dt_document:lookup(Uri),
   [ Document | _Rest ] = DocumentList,
-  Pois = els_dt_document:pois(Document, [application, function_clause]),
+  Pois = els_dt_document:pois(Document, [application, function_clause, module]),
 
-  Alma = lists:flatten([ make_fundepgraph_action(Uri, Range, Pois) ]),
+  Alma = lists:flatten([ make_depgraph_action(Uri, Range, Pois) ]),
   Alma.
 
--spec make_fundepgraph_action(uri(), range(), [poi()]) -> [map()].
-make_fundepgraph_action(Uri, Range, Pois) ->
+-spec make_depgraph_action(uri(), range(), [poi()]) -> [map()].
+make_depgraph_action(Uri, Range, Pois) ->
   ConvertedRange = els_range:to_poi_range(Range),
   MatchingRanges = lists:filter(
     fun(#{range := PoiRange}) ->
@@ -173,25 +172,31 @@ make_fundepgraph_action(Uri, Range, Pois) ->
     0 -> [];
     _ ->
       #{kind := Kind, id := ID} = hd(MatchingRanges),
-      FunName = case Kind of
+      {Name, Type} = case Kind of
         application -> % Function calls
           {Mod, Fun, Arity} = ID,
-          io_lib:format("~p:~p/~p", [Mod, Fun, Arity]);
+          FunName = io_lib:format("~p:~p/~p", [Mod, Fun, Arity]),
+          {FunName, func};
 
         function_clause -> % Function definitions
           {Fun, Arity, _Clause} = ID,
           Mod = els_uri:module(Uri),
-          io_lib:format("~p:~p/~p", [Mod, Fun, Arity])
+          FunName = io_lib:format("~p:~p/~p", [Mod, Fun, Arity]),
+          {FunName, func};
+
+        module ->
+          ModName = atom_to_list(ID),
+          {ModName, mod}
       end,
 
-      FunNameBin = list_to_binary(FunName),
-      Title =  <<"Dependency graph from", FunNameBin/binary>>,
+      NameBin = list_to_binary(Name),
+      Title =  <<"Dependency graph from ", NameBin/binary>>,
       CodeAction = #{ title =>  Title
                     , kind => <<"refactor">>
                     , command =>
            els_command:make_command( Title
                                    , <<"refactorerl-dependency-graph">>
-                                   , [#{ type => func, name => FunName}])
+                                   , [#{ type => Type, name => Name}])
        },
       [ CodeAction ]
     end.

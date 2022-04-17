@@ -13,7 +13,7 @@
         , source_name/0
         , add/1
         , variable_orgin/2
-        , dependency_graph/1
+        , dependency_graph/2
         ]).
 
 %%==============================================================================
@@ -180,14 +180,12 @@ variable_orgin(PathBin, Position) ->
 % TODO: doc
 
 
--spec dependency_graph(any()) -> any().
-dependency_graph(_FunName) ->
-  %case els_refactorerl_utils:referl_node() of
-  %  {ok, Node} ->
-  %    Path = binary_to_list(PathBin),
-  %    A = rpc:call(Node, referl_els, variable_origin, [Path, Position]),
-  %    notification(io_lib:format("~p", [A]));
-  %  _ ->
-  %    error
-  %end.
-  notification("Hello Graph!").
+-spec dependency_graph(any(), any()) -> error | ok.
+dependency_graph(Name, Type) ->
+  case els_refactorerl_utils:referl_node() of
+    {ok, Node} ->
+      A = rpc:call(Node, referl_els, dependency_graph, [Name, Type]),
+      notification(io_lib:format("~p", [A]));
+    _ ->
+      error
+  end.
