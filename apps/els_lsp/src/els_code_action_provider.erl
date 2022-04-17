@@ -22,7 +22,6 @@ handle_request({document_codeaction, Params}, State) ->
   #{ <<"textDocument">> := #{ <<"uri">> := Uri}
    , <<"range">>        := RangeLSP
    , <<"context">>      := Context } = Params,
-  %els_refactorerl_utils:notification(io_lib:format("R~p", [RangeLSP])),
   Result = code_actions(Uri, RangeLSP, Context),
   {Result, State}.
 
@@ -37,10 +36,7 @@ code_actions(Uri, Range, Context) ->
   #{ <<"diagnostics">> := Diagnostics } = Context,
   Actions0 = [ make_code_action(Uri, D) || D <- Diagnostics],
   Actions = lists:flatten(Actions0),
-  %els_refactorerl_utils:notification(io_lib:format("~p", [Actions])),
   RefactorErlActions = referl_action(Uri, Range),
-  %els_refactorerl_utils:notification(io_lib:format("RA-~p", [RefactorErlActions])),
-  
   Actions2 = Actions ++ RefactorErlActions,
 
   Actions2.
@@ -80,7 +76,6 @@ unused_variable_action(Uri, Range, Message) ->
              , [{capture, all_but_first, binary}]) of
       {match, [UnusedVariable]} ->
           X = make_unused_variable_action(Uri, Range, UnusedVariable),
-          %els_refactorerl_utils:notification(io_lib:format("~p", [X])),
           X;
       _ -> []
   end.
@@ -126,51 +121,26 @@ variable_origin_action(Uri, Range) ->
   {ok, DocumentList} = els_dt_document:lookup(Uri),
   [ Document | _Rest ] = DocumentList,
   Pois = els_dt_document:pois(Document, [variable]),
-  %els_refactorerl_utils:notification(io_lib:format("POIS-~p", [ Pois ])),
-  %els_refactorerl_utils:notification("ALMA"),
-  Alma = lists:flatten([ make_variable_origin_action(Uri, Range, Pois) ]), % Todo: flatten
-  %els_refactorerl_utils:notification(io_lib:format("VO-~p", [Alma])),
+  Alma = lists:flatten([ make_variable_origin_action(Uri, Range, Pois) ]),
   Alma.
 
 
 -spec make_variable_origin_action(uri(), range(), [poi()]) -> [map()].
 make_variable_origin_action(Uri, Range, Pois) ->
-  %#{ <<"start">> := #{ <<"character">> := _StartCol
-  %                   , <<"line">>      := StartLine }
-  % , <<"end">>   := _End
-  % } = Range,
-  %% processing messages like "variable 'Foo' is unused"
-  %{ok, #{text := Bin}} = els_utils:lookup_document(Uri),
-  %Line = els_utils:to_list(els_text:line(Bin, StartLine)),
-
-  %{ok, Tokens, _} = erl_scan:string(Line, 1, [return, text]),
-  %UnusedString = els_utils:to_list(Variable),
-  %Replace =
-  %      fun(Tok) ->
-  %          case Tok of
-  %              {var, [{text, UnusedString}, _], _} -> "_" ++ UnusedString;
-  %              {var, [{text, VarName}, _], _} -> VarName;
-  %              {_,   [{text, Text   }, _], _} -> Text;
-  %              {_,   [{text, Text   }, _]}    -> Text
-  %          end
-  %end,
-  %UpdatedLine = lists:flatten(lists:map(Replace, Tokens)) ++ "\n",
-  % 
-  % 
-  
   ConvertedRange = els_range:to_poi_range(Range),
-  %els_refactorerl_utils:notification(io_lib:format("~p", [Range])),
+  MatchingRanges = lists:filter(
+    fun(#{range := PoiRange}) ->
+      els_range:in(ConvertedRange, PoiRange)
+    end, Pois),
 
-  
-  Ok = lists:filter(fun(#{range := PoiRange}) -> els_range:in(ConvertedRange, PoiRange) end, Pois),
-  case length(Ok) of
+  case length(MatchingRanges) of
     0 -> [];
     _ ->
-      #{id := VarName} = hd(Ok),
+      #{id := VarName} = hd(MatchingRanges),
       VarNameBin = erlang:atom_to_binary(VarName),
 
       Title =  <<"Variable Origin of ", VarNameBin/binary>>,
-      Aha = #{ title =>  Title
+      CodeAction = #{ title =>  Title
        , kind => <<"refactor">>
        , command =>
            els_command:make_command( Title
@@ -178,15 +148,7 @@ make_variable_origin_action(Uri, Range, Pois) ->
                                    , [#{ uri  => Uri, range => Range}])
        },
 
-      [ Aha ]
+      [ CodeAction ]
       end.
-
-
-   
-  
-  
-
-  
-
 
 %%------------------------------------------------------------------------------

@@ -114,7 +114,7 @@ execute_command(<<"suggest-spec">>, [#{ <<"uri">> := Uri
 execute_command(<<"refactorerl-variable-origin">>, Arguments) ->
   %els_refactorerl_utils:notification(io_lib:format("~p", [Arguments])),
   case length(Arguments) of
-    1 -> 
+    1 ->
       Argument = hd(Arguments),
       #{ <<"range">> := RangeRaw, <<"uri">> := Uri} = Argument,
       Range = els_range:to_poi_range(RangeRaw),

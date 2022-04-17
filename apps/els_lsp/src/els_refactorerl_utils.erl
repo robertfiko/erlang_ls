@@ -169,7 +169,7 @@ variable_orgin(PathBin, Position) ->
   case els_refactorerl_utils:referl_node() of
     {ok, Node} ->
       Path = binary_to_list(PathBin),
-      A = rpc:call(Node, referl_els, variable_origin, [Path, Position]), %% returns error | ok
+      A = rpc:call(Node, referl_els, variable_origin, [Path, Position]),
       notification(io_lib:format("~p", [A]));
     _ ->
       error
