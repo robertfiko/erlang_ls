@@ -31,6 +31,7 @@ options() ->
                  , els_command:with_prefix(<<"suggest-spec">>)
                  , els_command:with_prefix(<<"function-references">>)
                  , els_command:with_prefix(<<"refactorerl-variable-origin">>)
+                 , els_command:with_prefix(<<"refactorerl-dependency-graph">>)
                  ] }.
 
 -spec handle_request(any(), state()) -> {any(), state()}.
@@ -112,7 +113,6 @@ execute_command(<<"suggest-spec">>, [#{ <<"uri">> := Uri
   els_server:send_request(Method, Params),
   [];
 execute_command(<<"refactorerl-variable-origin">>, Arguments) ->
-  %els_refactorerl_utils:notification(io_lib:format("~p", [Arguments])),
   case length(Arguments) of
     1 ->
       Argument = hd(Arguments),
@@ -120,8 +120,17 @@ execute_command(<<"refactorerl-variable-origin">>, Arguments) ->
       Range = els_range:to_poi_range(RangeRaw),
       #{from := From} = Range,
       Path = els_uri:path(Uri),
-      %els_refactorerl_utils:notification(io_lib:format("~p ~p", [Path, From])),
       els_refactorerl_utils:variable_orgin(Path, From),
+      [];
+    0 -> []
+  end;
+
+execute_command(<<"refactorerl-dependency-graph">>, Arguments) ->
+  case length(Arguments) of
+    1 ->
+      Argument = hd(Arguments),
+      #{ <<"type">> := _Type, <<"name">> := FunName} = Argument,
+      els_refactorerl_utils:dependency_graph(FunName),
       [];
     0 -> []
   end;

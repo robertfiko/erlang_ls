@@ -114,13 +114,14 @@ make_unused_variable_action(Uri, Range, UnusedVariable) ->
 
 -spec referl_action(any(), range()) -> any().
 referl_action(Uri, Range) ->
-  variable_origin_action(Uri, Range).
+  variable_origin_action(Uri, Range) ++ depgraph_action(Uri, Range).
 
 -spec variable_origin_action(uri(), range()) -> [map()].
 variable_origin_action(Uri, Range) ->
   {ok, DocumentList} = els_dt_document:lookup(Uri),
   [ Document | _Rest ] = DocumentList,
   Pois = els_dt_document:pois(Document, [variable]),
+  %els_refactorerl_utils:notification(io_lib:format("~p", Pois)),
   Alma = lists:flatten([ make_variable_origin_action(Uri, Range, Pois) ]),
   Alma.
 
@@ -151,4 +152,47 @@ make_variable_origin_action(Uri, Range, Pois) ->
       [ CodeAction ]
       end.
 
+-spec depgraph_action(uri(), range()) -> [map()].
+depgraph_action(Uri, Range) ->
+  {ok, DocumentList} = els_dt_document:lookup(Uri),
+  [ Document | _Rest ] = DocumentList,
+  Pois = els_dt_document:pois(Document, [application, function_clause]),
+
+  Alma = lists:flatten([ make_fundepgraph_action(Uri, Range, Pois) ]),
+  Alma.
+
+-spec make_fundepgraph_action(uri(), range(), [poi()]) -> [map()].
+make_fundepgraph_action(Uri, Range, Pois) ->
+  ConvertedRange = els_range:to_poi_range(Range),
+  MatchingRanges = lists:filter(
+    fun(#{range := PoiRange}) ->
+      els_range:in(ConvertedRange, PoiRange)
+    end, Pois),
+
+  case length(MatchingRanges) of
+    0 -> [];
+    _ ->
+      #{kind := Kind, id := ID} = hd(MatchingRanges),
+      FunName = case Kind of
+        application -> % Function calls
+          {Mod, Fun, Arity} = ID,
+          io_lib:format("~p:~p/~p", [Mod, Fun, Arity]);
+
+        function_clause -> % Function definitions
+          {Fun, Arity, _Clause} = ID,
+          Mod = els_uri:module(Uri),
+          io_lib:format("~p:~p/~p", [Mod, Fun, Arity])
+      end,
+
+      FunNameBin = list_to_binary(FunName),
+      Title =  <<"Dependency graph from", FunNameBin/binary>>,
+      CodeAction = #{ title =>  Title
+                    , kind => <<"refactor">>
+                    , command =>
+           els_command:make_command( Title
+                                   , <<"refactorerl-dependency-graph">>
+                                   , [#{ type => func, name => FunName}])
+       },
+      [ CodeAction ]
+    end.
 %%------------------------------------------------------------------------------

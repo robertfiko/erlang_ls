@@ -13,6 +13,7 @@
         , source_name/0
         , add/1
         , variable_orgin/2
+        , dependency_graph/1
         ]).
 
 %%==============================================================================
@@ -162,10 +163,9 @@ connect_node({Status, Node}) ->
 source_name() ->
   <<"RefactorErl">>.
 
-
+%TODO: doc
 -spec variable_orgin(uri(), {number(), number()}) -> error | ok.
 variable_orgin(PathBin, Position) ->
-  %els_refactorerl_utils:notification(io_lib:format("~p ~p", [Uri, Position])),
   case els_refactorerl_utils:referl_node() of
     {ok, Node} ->
       Path = binary_to_list(PathBin),
@@ -174,3 +174,20 @@ variable_orgin(PathBin, Position) ->
     _ ->
       error
   end.
+
+
+%TODO: spec
+% TODO: doc
+
+
+-spec dependency_graph(any()) -> any().
+dependency_graph(_FunName) ->
+  %case els_refactorerl_utils:referl_node() of
+  %  {ok, Node} ->
+  %    Path = binary_to_list(PathBin),
+  %    A = rpc:call(Node, referl_els, variable_origin, [Path, Position]),
+  %    notification(io_lib:format("~p", [A]));
+  %  _ ->
+  %    error
+  %end.
+  notification("Hello Graph!").
