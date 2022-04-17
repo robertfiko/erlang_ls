@@ -169,8 +169,6 @@ make_variable_origin_action(Uri, Range, Pois) ->
       #{id := VarName} = hd(Ok),
       VarNameBin = atom_to_binary(VarName),
 
-
-      %els_refactorerl_utils:notification(io_lib:format("~p", [VarNameBin])),
       Title =  <<"Variable Origin of ", VarNameBin/binary>>,
       Aha = #{ title =>  Title
        , kind => <<"refactor">>
@@ -179,8 +177,6 @@ make_variable_origin_action(Uri, Range, Pois) ->
                                    , <<"refactorerl-variable-origin">>
                                    , [#{ uri  => Uri, range => Range}])
        },
-      %els_refactorerl_utils:notification(io_lib:format("VAC-~p", [Aha])),
-
 
       [ Aha ]
       end.
