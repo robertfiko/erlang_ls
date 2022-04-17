@@ -167,7 +167,7 @@ make_variable_origin_action(Uri, Range, Pois) ->
     0 -> [];
     _ ->
       #{id := VarName} = hd(Ok),
-      VarNameBin = atom_to_binary(VarName),
+      VarNameBin = erlang:atom_to_binary(VarName),
 
       Title =  <<"Variable Origin of ", VarNameBin/binary>>,
       Aha = #{ title =>  Title
