@@ -115,8 +115,8 @@ make_unused_variable_action(Uri, Range, UnusedVariable) ->
 referl_action(Uri, Range) ->
   case els_config:get(refactorerl) of
     #{"node" := {_Node, validated}} ->
-      variable_action(Uri, Range) 
-      ++ depgraph_action(Uri, Range) 
+      variable_action(Uri, Range)
+      ++ depgraph_action(Uri, Range)
       ++ dyncall_action(Uri, Range);
     _ -> []
   end.
@@ -244,7 +244,7 @@ make_dyncall_action(Uri, Range, Pois) ->
             {F, A} -> {els_uri:module(Uri), F, A};
             ID = {_, _, _} -> ID
           end;
-         
+
         function_clause -> % Function definitions
           {F, A, _Clause} = ID,
           M = els_uri:module(Uri),
@@ -264,7 +264,9 @@ make_dyncall_action(Uri, Range, Pois) ->
                     , command =>
            els_command:make_command( Title
                                    , <<"refactorerl-dyncall">>
-                                   , [#{ module  => ModBin, func => FunBin, arity => ArityBin}])
+                                   , [#{  module  => ModBin
+                                        , func => FunBin
+                                        , arity => ArityBin}])
        },
       [ CodeAction ]
     end.

@@ -33,7 +33,7 @@ options() ->
                  , els_command:with_prefix(<<"refactorerl-variable-origin">>)
                  , els_command:with_prefix(<<"refactorerl-variable-reach">>)
                  , els_command:with_prefix(<<"refactorerl-dependency-graph">>)
-                 , els_command:with_prefix(<<"refactorerl-dyncall">>)        
+                 , els_command:with_prefix(<<"refactorerl-dyncall">>)
                  ] }.
 
 -spec handle_request(any(), state()) -> {any(), state()}.
@@ -154,8 +154,10 @@ execute_command(<<"refactorerl-dyncall">>, Arguments) ->
   case length(Arguments) of
     1 ->
       Argument = hd(Arguments),
-      #{ <<"module">> := Module, <<"func">> := Func, <<"arity">> := Arity} = Argument,
-      
+      #{ <<"module">> := Module
+      , <<"func">> := Func
+      , <<"arity">> := Arity} = Argument,
+
       els_refactorerl_utils:dyncall(hd(Module), hd(Func), hd(Arity)),
       [];
     _ -> []
