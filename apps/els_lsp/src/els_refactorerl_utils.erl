@@ -213,7 +213,7 @@ dependency_graph(Name, Type) ->
 dyncall(Module, Func, Arity) ->
   case els_refactorerl_utils:referl_node() of
     {ok, Node} ->
-      Resp = rpc:call(Node, referl_els, dymamic_calls, [Module, Func, Arity]),
+      Resp = rpc:call(Node, referl_els, dynamic_calls, [Module, Func, Arity]),
       notification("See reach result in the sidebar!"),
       Resp;
 
