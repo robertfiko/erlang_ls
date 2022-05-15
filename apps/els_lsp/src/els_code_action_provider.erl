@@ -113,9 +113,13 @@ make_unused_variable_action(Uri, Range, UnusedVariable) ->
 
 -spec referl_action(any(), range()) -> any().
 referl_action(Uri, Range) ->
-  variable_action(Uri, Range) 
-  ++ depgraph_action(Uri, Range) 
-  ++ dyncall_action(Uri, Range).
+  case els_config:get(refactorerl) of
+    #{"node" := {_Node, validated}} ->
+      variable_action(Uri, Range) 
+      ++ depgraph_action(Uri, Range) 
+      ++ dyncall_action(Uri, Range);
+    _ -> []
+  end.
 
 -spec variable_action(uri(), range()) -> [map()].
 variable_action(Uri, Range) ->
@@ -183,10 +187,11 @@ make_depgraph_action(Uri, Range, Pois) ->
       #{kind := Kind, id := ID} = hd(MatchingRanges),
       {Name, Type} = case Kind of
         application -> % Function calls
-          els_refactorerl_utils:notificaiton("Hoo!"),
-          {Mod, Fun, Arity} = ID,
+          {Mod, Fun, Arity} = case ID of
+            {F, A} -> {els_uri:module(Uri), F, A};
+            ID = {_, _, _} -> ID
+          end,
           FunName = io_lib:format("~p:~p/~p", [Mod, Fun, Arity]),
-          els_refactorerl_utils:notificaiton("Hoo!" ++ FunName),
           {FunName, func};
 
         function_clause -> % Function definitions
@@ -235,8 +240,10 @@ make_dyncall_action(Uri, Range, Pois) ->
       #{kind := Kind, id := ID} = hd(MatchingRanges),
       {Mod, Fun, Arity} = case Kind of
         application -> % Function calls
-          els_refactorerl_utils:notificaiton("Hey!"),
-          {_M, _F, _A} = ID;
+          case ID of
+            {F, A} -> {els_uri:module(Uri), F, A};
+            ID = {_, _, _} -> ID
+          end;
          
         function_clause -> % Function definitions
           {F, A, _Clause} = ID,
