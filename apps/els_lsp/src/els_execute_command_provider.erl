@@ -31,7 +31,9 @@ options() ->
                  , els_command:with_prefix(<<"suggest-spec">>)
                  , els_command:with_prefix(<<"function-references">>)
                  , els_command:with_prefix(<<"refactorerl-variable-origin">>)
+                 , els_command:with_prefix(<<"refactorerl-variable-reach">>)
                  , els_command:with_prefix(<<"refactorerl-dependency-graph">>)
+                 , els_command:with_prefix(<<"refactorerl-dyncall">>)
                  ] }.
 
 -spec handle_request(any(), state()) -> {any(), state()}.
@@ -122,7 +124,20 @@ execute_command(<<"refactorerl-variable-origin">>, Arguments) ->
       Path = els_uri:path(Uri),
       els_refactorerl_utils:variable_orgin(Path, From),
       [];
-    0 -> []
+    _ -> []
+  end;
+
+execute_command(<<"refactorerl-variable-reach">>, Arguments) ->
+  case length(Arguments) of
+    1 ->
+      Argument = hd(Arguments),
+      #{ <<"range">> := RangeRaw, <<"uri">> := Uri} = Argument,
+      Range = els_range:to_poi_range(RangeRaw),
+      #{from := From} = Range,
+      Path = els_uri:path(Uri),
+      els_refactorerl_utils:variable_reach(Path, From),
+      [];
+    _ -> []
   end;
 
 execute_command(<<"refactorerl-dependency-graph">>, Arguments) ->
@@ -132,8 +147,22 @@ execute_command(<<"refactorerl-dependency-graph">>, Arguments) ->
       #{ <<"type">> := Type, <<"name">> := Name} = Argument,
       els_refactorerl_utils:dependency_graph(Name, Type),
       [];
-    0 -> []
+    _ -> []
   end;
+
+execute_command(<<"refactorerl-dyncall">>, Arguments) ->
+  case length(Arguments) of
+    1 ->
+      Argument = hd(Arguments),
+      #{ <<"module">> := Module
+      , <<"func">> := Func
+      , <<"arity">> := Arity} = Argument,
+
+      els_refactorerl_utils:dyncall(hd(Module), hd(Func), hd(Arity)),
+      [];
+    _ -> []
+  end;
+
 
 execute_command(Command, Arguments) ->
   ?LOG_INFO("Unsupported command: [Command=~p] [Arguments=~p]"

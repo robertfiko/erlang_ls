@@ -13,7 +13,9 @@
         , source_name/0
         , add/1
         , variable_orgin/2
+        , variable_reach/2
         , dependency_graph/2
+        , dyncall/3
         ]).
 
 %%==============================================================================
@@ -163,29 +165,58 @@ connect_node({Status, Node}) ->
 source_name() ->
   <<"RefactorErl">>.
 
-%TODO: doc
+%% @doc
+%% Executes a variable origin request on the RefactorErl node
 -spec variable_orgin(uri(), {number(), number()}) -> error | ok.
 variable_orgin(PathBin, Position) ->
   case els_refactorerl_utils:referl_node() of
     {ok, Node} ->
       Path = binary_to_list(PathBin),
-      A = rpc:call(Node, referl_els, variable_origin, [Path, Position]),
-      notification(io_lib:format("~p", [A]));
+      Resp = rpc:call(Node, referl_els, variable_origin, [Path, Position]),
+      notification("See origin result in the sidebar!"),
+      Resp;
+    _ ->
+      error
+  end.
+
+%% @doc
+%% Executes a variable reacj request on the RefactorErl node
+-spec variable_reach(uri(), {number(), number()}) -> error | ok.
+variable_reach(PathBin, Position) ->
+  case els_refactorerl_utils:referl_node() of
+    {ok, Node} ->
+      Path = binary_to_list(PathBin),
+      Resp = rpc:call(Node, referl_els, variable_reach, [Path, Position]),
+      notification("See reach result in the sidebar!"),
+      Resp;
+
+    _ ->
+      error
+  end.
+
+%% @doc
+%% Executes a dependency graph request on the RefactorErl node
+-spec dependency_graph(string(), func | mod) -> error | ok.
+dependency_graph(Name, Type) ->
+  case els_refactorerl_utils:referl_node() of
+    {ok, Node} ->
+      rpc:call(Node, referl_els, dependency_graph, [Name, Type]);
+
     _ ->
       error
   end.
 
 
-%TODO: spec
-% TODO: doc
-
-
--spec dependency_graph(any(), any()) -> error | ok.
-dependency_graph(Name, Type) ->
+%% @doc
+%% Executes a dynamic call request on the RefactorErl node
+-spec dyncall(module(), function(), arity()) -> error | ok.
+dyncall(Module, Func, Arity) ->
   case els_refactorerl_utils:referl_node() of
     {ok, Node} ->
-      A = rpc:call(Node, referl_els, dependency_graph, [Name, Type]),
-      notification(io_lib:format("~p", [A]));
+      Resp = rpc:call(Node, referl_els, dynamic_calls, [Module, Func, Arity]),
+      notification("See reach result in the sidebar!"),
+      Resp;
+
     _ ->
       error
   end.

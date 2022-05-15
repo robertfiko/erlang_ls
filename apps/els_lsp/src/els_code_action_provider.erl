@@ -37,9 +37,8 @@ code_actions(Uri, Range, Context) ->
   Actions0 = [ make_code_action(Uri, D) || D <- Diagnostics],
   Actions = lists:flatten(Actions0),
   RefactorErlActions = referl_action(Uri, Range),
-  Actions2 = Actions ++ RefactorErlActions,
+  Actions ++ RefactorErlActions.
 
-  Actions2.
 
 %% @doc Note: if the start and end line of the range are the same, the line
 %% is simply added.
@@ -114,15 +113,20 @@ make_unused_variable_action(Uri, Range, UnusedVariable) ->
 
 -spec referl_action(any(), range()) -> any().
 referl_action(Uri, Range) ->
-  variable_origin_action(Uri, Range) ++ depgraph_action(Uri, Range).
+  case els_config:get(refactorerl) of
+    #{"node" := {_Node, validated}} ->
+      variable_action(Uri, Range)
+      ++ depgraph_action(Uri, Range)
+      ++ dyncall_action(Uri, Range);
+    _ -> []
+  end.
 
--spec variable_origin_action(uri(), range()) -> [map()].
-variable_origin_action(Uri, Range) ->
+-spec variable_action(uri(), range()) -> [map()].
+variable_action(Uri, Range) ->
   {ok, DocumentList} = els_dt_document:lookup(Uri),
   [ Document | _Rest ] = DocumentList,
   Pois = els_dt_document:pois(Document, [variable]),
-  Alma = lists:flatten([ make_variable_origin_action(Uri, Range, Pois) ]),
-  Alma.
+  lists:flatten([ make_variable_origin_action(Uri, Range, Pois) ]).
 
 
 -spec make_variable_origin_action(uri(), range(), [poi()]) -> [map()].
@@ -139,16 +143,25 @@ make_variable_origin_action(Uri, Range, Pois) ->
       #{id := VarName} = hd(MatchingRanges),
       VarNameBin = atom_to_binary(VarName, utf8),
 
-      Title =  <<"Variable Origin of ", VarNameBin/binary>>,
-      CodeAction = #{ title =>  Title
+      TitleOrigin =  <<"Variable Origin of ", VarNameBin/binary>>,
+      OriginAction = #{ title =>  TitleOrigin
        , kind => <<"refactor">>
        , command =>
-           els_command:make_command( Title
+           els_command:make_command( TitleOrigin
                                    , <<"refactorerl-variable-origin">>
                                    , [#{ uri  => Uri, range => Range}])
        },
 
-      [ CodeAction ]
+      TitleReach =  <<"Variable Reach of ", VarNameBin/binary>>,
+      ReachAction = #{ title =>  TitleReach
+       , kind => <<"refactor">>
+       , command =>
+           els_command:make_command( TitleReach
+                                   , <<"refactorerl-variable-reach">>
+                                   , [#{ uri  => Uri, range => Range}])
+       },
+
+      [ OriginAction, ReachAction ]
       end.
 
 -spec depgraph_action(uri(), range()) -> [map()].
@@ -174,7 +187,10 @@ make_depgraph_action(Uri, Range, Pois) ->
       #{kind := Kind, id := ID} = hd(MatchingRanges),
       {Name, Type} = case Kind of
         application -> % Function calls
-          {Mod, Fun, Arity} = ID,
+          {Mod, Fun, Arity} = case ID of
+            {F, A} -> {els_uri:module(Uri), F, A};
+            ID = {_, _, _} -> ID
+          end,
           FunName = io_lib:format("~p:~p/~p", [Mod, Fun, Arity]),
           {FunName, func};
 
@@ -200,4 +216,61 @@ make_depgraph_action(Uri, Range, Pois) ->
        },
       [ CodeAction ]
     end.
+
+
+
+-spec dyncall_action(uri(), range()) -> [map()].
+dyncall_action(Uri, Range) ->
+  {ok, DocumentList} = els_dt_document:lookup(Uri),
+  [ Document | _Rest ] = DocumentList,
+  Pois = els_dt_document:pois(Document, [function_clause, application]),
+  lists:flatten([ make_dyncall_action(Uri, Range, Pois) ]).
+
+-spec make_dyncall_action(uri(), range(), [poi()]) -> [map()].
+make_dyncall_action(Uri, Range, Pois) ->
+  ConvertedRange = els_range:to_poi_range(Range),
+  MatchingRanges = lists:filter(
+    fun(#{range := PoiRange}) ->
+      els_range:in(ConvertedRange, PoiRange)
+    end, Pois),
+
+  case length(MatchingRanges) of
+    0 -> [];
+    _ ->
+      #{kind := Kind, id := ID} = hd(MatchingRanges),
+      {Mod, Fun, Arity} = case Kind of
+        application -> % Function calls
+          case ID of
+            {F, A} -> {els_uri:module(Uri), F, A};
+            ID = {_, _, _} -> ID
+          end;
+
+        function_clause -> % Function definitions
+          {F, A, _Clause} = ID,
+          M = els_uri:module(Uri),
+          {M, F, A}
+      end,
+
+      Name =  io_lib:format("~p:~p/~p", [Mod, Fun, Arity]),
+      NameBin = list_to_binary(Name),
+
+      ModBin = io_lib:format("~p", [Mod]),
+      FunBin = io_lib:format("~p", [Fun]),
+      ArityBin = io_lib:format("~p", [Arity]),
+
+      Title =  <<"Function references of", NameBin/binary>>,
+      CodeAction = #{ title =>  Title
+                    , kind => <<"refactor">>
+                    , command =>
+           els_command:make_command( Title
+                                   , <<"refactorerl-dyncall">>
+                                   , [#{  module  => ModBin
+                                        , func => FunBin
+                                        , arity => ArityBin}])
+       },
+      [ CodeAction ]
+    end.
+
+
+
 %%------------------------------------------------------------------------------
