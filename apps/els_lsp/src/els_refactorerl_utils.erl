@@ -163,7 +163,8 @@ connect_node({Status, Node}) ->
 source_name() ->
   <<"RefactorErl">>.
 
-%TODO: doc
+%% @doc
+%% Executed a Variable Origin action on the RefactorErl node
 -spec variable_orgin(uri(), {number(), number()}) -> error | ok.
 variable_orgin(PathBin, Position) ->
   case els_refactorerl_utils:referl_node() of
@@ -176,11 +177,10 @@ variable_orgin(PathBin, Position) ->
   end.
 
 
-%TODO: spec
 % TODO: doc
 
-
--spec dependency_graph(any(), any()) -> error | ok.
+%@doc 
+-spec dependency_graph(list(), atom()) -> error | ok.
 dependency_graph(Name, Type) ->
   case els_refactorerl_utils:referl_node() of
     {ok, Node} ->
