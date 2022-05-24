@@ -138,7 +138,7 @@ is_refactorerl(Node) ->
 %%
 %% when retry, it won't report.
 -spec connect_node({validate | retry, atom()}) -> {error, disconnected}
-                                                     | atom().
+                                                     | {ok, atom()}.
 connect_node({Status, Node}) ->
   Config = els_config:get(refactorerl),
   case {Status, is_refactorerl(Node)} of

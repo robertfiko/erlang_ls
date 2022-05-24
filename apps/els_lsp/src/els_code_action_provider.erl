@@ -111,7 +111,7 @@ make_unused_variable_action(Uri, Range, UnusedVariable) ->
 %% RefactorErl
 %%==============================================================================
 
--spec referl_action(any(), range()) -> any().
+-spec referl_action(uri(), range()) -> any().
 referl_action(Uri, Range) ->
   case els_config:get(refactorerl) of
     #{"node" := {_Node, validated}} ->
@@ -126,11 +126,11 @@ variable_action(Uri, Range) ->
   {ok, DocumentList} = els_dt_document:lookup(Uri),
   [ Document | _Rest ] = DocumentList,
   Pois = els_dt_document:pois(Document, [variable]),
-  lists:flatten([ make_variable_origin_action(Uri, Range, Pois) ]).
+  lists:flatten([ make_variable_action(Uri, Range, Pois) ]).
 
 
--spec make_variable_origin_action(uri(), range(), [poi()]) -> [map()].
-make_variable_origin_action(Uri, Range, Pois) ->
+-spec make_variable_action(uri(), range(), [poi()]) -> [map()].
+make_variable_action(Uri, Range, Pois) ->
   ConvertedRange = els_range:to_poi_range(Range),
   MatchingRanges = lists:filter(
     fun(#{range := PoiRange}) ->
@@ -268,7 +268,7 @@ make_dyncall_action(Uri, Range, Pois) ->
                                         , func => FunBin
                                         , arity => ArityBin}])
        },
-      [ CodeAction ]
+      [ CodeAction ] 
     end.
 
 
