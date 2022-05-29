@@ -175,7 +175,8 @@ variable_orgin(PathBin, Position) ->
       Resp = rpc:call(Node, referl_els, variable_origin, [Path, Position]),
       case Resp of
         ok -> notification("See origin result in the sidebar!");
-        _ -> notification("Please check that the file is added to RefactorErl and parsed accordingly, and Web Socket is started!")
+        _ -> notification("Please check that the file is added to 
+        RefactorErl and parsed accordingly, and Web Socket is started!")
       end,
       Resp;
     _ ->
