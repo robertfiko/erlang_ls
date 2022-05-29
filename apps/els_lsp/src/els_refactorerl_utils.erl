@@ -173,7 +173,10 @@ variable_orgin(PathBin, Position) ->
     {ok, Node} ->
       Path = binary_to_list(PathBin),
       Resp = rpc:call(Node, referl_els, variable_origin, [Path, Position]),
-      notification("See origin result in the sidebar!"),
+      case Resp of
+        ok -> notification("See origin result in the sidebar!");
+        _ -> notification("Please check that the file is added to RefactorErl and parsed accordingly, and Web Socket is started!")
+      end,
       Resp;
     _ ->
       error
