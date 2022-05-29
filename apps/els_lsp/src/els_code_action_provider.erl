@@ -268,7 +268,7 @@ make_dyncall_action(Uri, Range, Pois) ->
                                         , func => FunBin
                                         , arity => ArityBin}])
        },
-      [ CodeAction ] 
+      [ CodeAction ]
     end.
 
 
